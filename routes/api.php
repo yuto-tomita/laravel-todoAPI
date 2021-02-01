@@ -15,7 +15,11 @@ use App\Http\Controllers\Api\UserController;
 |
 */
 
-Route::group(['middleware' => ['api']], function () {
-  Route::get('/create/user', 'App\Http\Controllers\Api\UserController@createUser');
-});
+// Route::group(['middleware' => ['api']], function () {
+// });
+
+// Route::group(['middleware' => 'api'], function () {
+// });
+Route::post('signup', 'App\Http\Controllers\Api\UserController@signup');
+Route::post('signin', 'App\Http\Controllers\Api\UserController@signin');
 
