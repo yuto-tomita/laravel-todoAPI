@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\{Validator, Hash, DB, Mail};
+use Illuminate\Support\Facades\{Validator, Hash, DB, Mail, Auth};
 use App\Mail\OrderShipped;
 use App\Models\Order;
 use Illuminate\Auth\Events\Registered;
@@ -16,7 +16,7 @@ class UserController extends Controller
         // signup→メールアドレスで認証→認証したらToken発行してマイページに遷移する
         $this->validator($request->all())->validate();
  
-        $user = new User();
+        $user = auth()->user();
         clock($user);
 
         DB::insert(
@@ -24,7 +24,7 @@ class UserController extends Controller
             [$request->name, $request->email, $request->password, Carbon::now(), Carbon::now()]
         );
 
-        $token = $user->createToken('token-name');
+        $token = $user->createToken($request->token_name);
         $token->planeTextToken;
 
         // $user->fill($request->all())->save();
@@ -40,7 +40,30 @@ class UserController extends Controller
     }
 
     public function signin(Request $request) {
-        return $request;
+        $validate = $request->validate([
+            'email' => 'required',
+            'password' => 'required',
+        ]);
+
+        $user = DB::selectOne(
+            'select * from users where email = ? and password = ?',
+            [$request->email, $request->password]
+        );
+
+        if (is_null($user)) {
+            return response()->json(['error' => 'not match email or password'], 400);
+        } else {
+            $token = $user->createToken('token-name');
+            $token->planeTextToken;
+
+            return response()->json([
+                'token' => $token,
+                'user' => $user
+            ], 201);
+        }
+
+        // clock(Auth::user());
+        // return $request;
     }
 
     protected function validator(array $data)

@@ -17,6 +17,7 @@ Route::group(['middleware' => 'api'], function () {
 		$request->fulfill();
 	})->middleware(['auth', 'signed'])->name('verification.verify');
 });
+
 Route::post('signin', 'App\Http\Controllers\Api\UserController@signin');
 
 // Route::get('profile', function () {
