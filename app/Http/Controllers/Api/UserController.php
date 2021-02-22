@@ -14,67 +14,78 @@ class UserController extends Controller
 {
     public function signup(Request $request) {
         // signup→メールアドレスで認証→認証したらToken発行してマイページに遷移する
-        $this->validator($request->all())->validate();
- 
-        $user = auth()->user();
-        clock($user);
+        clock($request);
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|max:255',
+            'email' => 'required|email',
+            'password' => 'required'
+        ]);
 
-        DB::insert(
-            'insert into users (name, email, password, created_at, updated_at) values (?, ?, ?, ?, ?)',
-            [$request->name, $request->email, $request->password, Carbon::now(), Carbon::now()]
-        );
+        if ($validator->fails()) {
+            clock($validator);
+            return response()->json([
+                'message' => '入力内容を確認してください'
+            ], 400);
+        }
 
-        $token = $user->createToken($request->token_name);
-        $token->planeTextToken;
+        $user = new User();
 
+        $duplicateCheck = User::where('email', $request->email)->first();
+
+        if ($duplicateCheck) {
+            return response()->json([
+                'message' => 'すでに登録されているユーザーです'
+            ], 400);
+        }
+
+        $hash_password = Hash::make($request->email);
+
+        $user->name = $request->name;
+        $user->email = $request->email;
+        $user->password = $hash_password;
+        $user->save();
+
+        $token = $user->createToken('token')->plainTextToken;
+        
+        return response()->json([
+            'token' => $token,
+            'user' => $user
+        ], 201);
         // $user->fill($request->all())->save();
         // メールを送信できるようにするもの。メールから別途email_verified_atを更新するメソッドを書く必要あり。
         // event(new Registered($user));
         // メール送れるようにするもの
         // Mail::to($request->email)->send(new OrderShipped());
-
-        return response()->json([
-            'token' => $token,
-            'user' => $user
-        ], 201);
     }
 
     public function signin(Request $request) {
-        $validate = $request->validate([
-            'email' => 'required',
-            'password' => 'required',
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'password' => 'required'
         ]);
 
-        $user = DB::selectOne(
-            'select * from users where email = ? and password = ?',
-            [$request->email, $request->password]
-        );
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => '入力内容を確認してください'
+            ], 400);
+        };
+
+        $user = User::where('email', $request->email)->first();
 
         if (is_null($user)) {
-            return response()->json(['error' => 'not match email or password'], 400);
-        } else {
-            $token = $user->createToken('token-name');
-            $token->planeTextToken;
+            return response()->json(['error' => 'メールアドレスが違います'], 400);
+        }
+
+        if (Hash::check($request->email, $user->password)) {
+            $token = $user->createToken('token')->plainTextToken;
 
             return response()->json([
                 'token' => $token,
                 'user' => $user
             ], 201);
+        } else {
+            return response()->json(['error' => 'パスワードが違います'], 400);
         }
-
-        // clock(Auth::user());
-        // return $request;
-    }
-
-    protected function validator(array $data)
-    {
-        $validator = Validator::make($data, [
-            'name' => ['required', 'string', 'max: 255'],
-            'email' => ['required', 'string', 'email', 'max: 255'],
-            'password' => ['required', 'string']
-        ]);
-
-        return $validator;
     }
 }
 
