@@ -25,7 +25,7 @@ class UserController extends Controller
             clock($validator);
             return response()->json([
                 'message' => '入力内容を確認してください'
-            ], 400);
+            ], 401);
         }
 
         $user = new User();
@@ -35,10 +35,10 @@ class UserController extends Controller
         if ($duplicateCheck) {
             return response()->json([
                 'message' => 'すでに登録されているユーザーです'
-            ], 400);
+            ], 401);
         }
 
-        $hash_password = Hash::make($request->email);
+        $hash_password = Hash::make($request->password);
 
         $user->name = $request->name;
         $user->email = $request->email;
@@ -67,16 +67,18 @@ class UserController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'message' => '入力内容を確認してください'
-            ], 400);
+            ], 401);
         };
 
         $user = User::where('email', $request->email)->first();
 
+        clock($request->password);
+
         if (is_null($user)) {
-            return response()->json(['error' => 'メールアドレスが違います'], 400);
+            return response()->json(['error' => 'メールアドレスが違います'], 401);
         }
 
-        if (Hash::check($request->email, $user->password)) {
+        if (Hash::check($request->password, $user->password)) {
             $token = $user->createToken('token')->plainTextToken;
 
             return response()->json([
@@ -84,7 +86,7 @@ class UserController extends Controller
                 'user' => $user
             ], 201);
         } else {
-            return response()->json(['error' => 'パスワードが違います'], 400);
+            return response()->json(['error' => 'パスワードが違います'], 401);
         }
     }
 }
