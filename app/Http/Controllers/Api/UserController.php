@@ -50,7 +50,7 @@ class UserController extends Controller
         return response()->json([
             'token' => $token,
             'user' => $user
-        ], 201);
+        ], 200);
         // $user->fill($request->all())->save();
         // メールを送信できるようにするもの。メールから別途email_verified_atを更新するメソッドを書く必要あり。
         // event(new Registered($user));
@@ -75,7 +75,7 @@ class UserController extends Controller
         clock($request->password);
 
         if (is_null($user)) {
-            return response()->json(['error' => 'メールアドレスが違います'], 401);
+            return response()->json(['message' => 'メールアドレスまたはパスワードが違います'], 400);
         }
 
         if (Hash::check($request->password, $user->password)) {
@@ -84,9 +84,9 @@ class UserController extends Controller
             return response()->json([
                 'token' => $token,
                 'user' => $user
-            ], 201);
+            ], 200);
         } else {
-            return response()->json(['error' => 'パスワードが違います'], 401);
+            return response()->json(['message' => 'メールアドレスまたはパスワードが違います'], 400);
         }
     }
 }
